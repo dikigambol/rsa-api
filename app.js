@@ -7,6 +7,10 @@ app.get('/', (req, res) => {
   res.send('Hello Yanuar');
 });
 
+app.get('/ashiap', (req, res) => {
+  res.send('Ashiap');
+});
+
 app.listen(port, () => {
   console.log(`Server berjalan di http://localhost:${port}`);
 });
