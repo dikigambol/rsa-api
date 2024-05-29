@@ -3,6 +3,9 @@ const db = require("../config/db");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { config } = require("dotenv");
+const fs = require('fs').promises;
+const path = require('path');
+
 const DetailUser = require("../models/detailUserModel.js");
 config();
 
@@ -53,7 +56,7 @@ exports.detailUser = async (req, res) => {
         const [results] = await db.query(
           "SELECT `user`.`no_pegawai`, `user`.`nama`, `detail_user`.`tgl_masuk`, `detail_user`.`gender`, `detail_user`.`no_ktp`, `detail_user`.`no_hp`, `detail_user`.`email`, `detail_user`.`alamat_domisili`, `detail_user`.`alamat_ktp`, `detail_user`.`tempat_lahir`, `detail_user`.`tgl_lahir`, `detail_user`.`status_nikah`, `detail_user`.`tgl_keluar`, `detail_user`.`pendidikan`, `detail_user`.`posisi`, `detail_user`.`divisi`, `detail_user`.`jabatan`, `detail_user`.`no_pegawai` FROM `user` LEFT OUTER JOIN `detail_user` ON `user`.`no_pegawai` = `detail_user`.`no_pegawai` WHERE `detail_user`.`no_pegawai` = " + req.query.nopeg
         );
-        res.status(200).json(results[0] ?? {status : "invalid nopeg!"});
+        res.status(200).json(results[0] ?? { status: "invalid nopeg!" });
       } catch (error) {
         res.status(500).json({ error: error.message });
       }
@@ -98,33 +101,32 @@ exports.detailUser = async (req, res) => {
   }
 };
 
-// exports.signIn = async (req, res) => {
-//   let { username, password } = req.body;
-//   try {
-//     const response = await User.findOne({
-//       where: { username: username },
-//     });
-//     if (response) {
-//       const login = await bcrypt.compare(password, response.password);
-//       if (login) {
-//         const token = jwt.sign(
-//           { username: response.username, role: response.role },
-//           process.env.SECRET_KEY,
-//           { expiresIn: '12h' }
-//         );
-//         return res.status(200).json({
-//           token: token,
-//         });
-//       } else {
-//         return res.status(404).json({ error: "Invalid username or password" });
-//       }
-//     } else {
-//       return res.status(404).json({ error: "Invalid username or password" });
-//     }
-//   } catch (error) {
-//     console.log(error.message);
-//   }
-// };
+exports.signIn = async (req, res) => {
+  try {
+    const privateKeyPath = path.resolve(__dirname, '../function/keys', 'private_key.pem');
+    const privateKey = await fs.readFile(privateKeyPath, { encoding: 'utf8' });
+    const { no_pegawai, password } = req.body;
+
+    const response = await User.findOne({ where: { no_pegawai: no_pegawai } });
+
+    if (!response) {
+      return res.status(404).json({ error: "Invalid username or password" });
+    }
+
+    const login = await bcrypt.compare(password, response.password);
+    if (!login) {
+      return res.status(404).json({ error: "Invalid username or password" });
+    }
+
+    const payload = { nopeg: response.no_pegawai, name: response.nama, role: response.level_user, claim: "created for HRD Asia" };
+    const token = jwt.sign(payload, privateKey, { algorithm: 'RS256', expiresIn: '12h' });
+
+    return res.status(200).json({ token: token });
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
 
 function generateRandomPassword(length) {
   const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
