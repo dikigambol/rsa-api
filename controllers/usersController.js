@@ -28,7 +28,6 @@ exports.createUser = async (req, res) => {
       status: "Berhasil Tambah!",
     });
   } catch (error) {
-    console.error("Error:", error);
     res.status(500).json({
       status: "Gagal Tambah!",
       error: error.message,
@@ -36,12 +35,11 @@ exports.createUser = async (req, res) => {
   }
 };
 
-exports.detailUser = async (req, res) => {
+exports.configUser = async (req, res) => {
   let { no_pegawai, tgl_masuk, gender, no_ktp, no_hp, email, alamat_domisili,
     alamat_ktp, tempat_lahir, tgl_lahir, status_nikah, tgl_keluar, pendidikan,
     posisi, divisi, jabatan } = req.body;
   if (req.method === 'GET') {
-    console.log(req.query.nopeg)
     if (!req.query.nopeg) {
       try {
         const [results] = await db.query(
