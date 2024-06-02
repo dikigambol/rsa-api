@@ -9,10 +9,14 @@ exports.getIzinByAtasan = async (req, res) => {
       attributes: ["id_divisi"],
     });
     const arrDivisi = response.map((item) => item.id_divisi);
-    const [results] = await db.query(
-      `SELECT user.nama, divisi.ket_divisi, izin_pegawai.id_izin, izin_pegawai.tgl_izin, izin_pegawai.keterangan, izin_pegawai.status_izin FROM izin_pegawai JOIN detail_user ON izin_pegawai.no_pegawai = detail_user.no_pegawai JOIN user ON izin_pegawai.no_pegawai = user.no_pegawai JOIN divisi ON detail_user.divisi = divisi.id_divisi WHERE detail_user.divisi IN (${arrDivisi.toString()}) AND izin_pegawai.status_izin = 0`
-    );
-    res.status(200).json(results);
+    if(arrDivisi.length != 0){
+      const [results] = await db.query(
+        `SELECT user.nama, divisi.ket_divisi, izin_pegawai.id_izin, izin_pegawai.tgl_izin, izin_pegawai.keterangan, izin_pegawai.status_izin FROM izin_pegawai JOIN detail_user ON izin_pegawai.no_pegawai = detail_user.no_pegawai JOIN user ON izin_pegawai.no_pegawai = user.no_pegawai JOIN divisi ON detail_user.divisi = divisi.id_divisi WHERE detail_user.divisi IN (${arrDivisi.toString()})`
+      );
+      res.status(200).json(results);
+    }else{
+      res.status(200).json([]);
+    }
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -32,11 +36,20 @@ exports.getIzinByOwner = async (req, res) => {
 exports.createIzin = async (req, res) => {
   let { no_pegawai, tgl_izin, keterangan, status_izin } = req.body;
   try {
+    const response = await Struktural.findOne({
+      where: { atasan: no_pegawai }
+    });
+    let status_val
+    if(response != null){
+      status_val = 1
+    }else{
+      status_val = 0
+    }
     let newIzin = new Izin({
       no_pegawai,
       tgl_izin,
       keterangan,
-      status_izin,
+      status_izin: status_val,
     });
     await newIzin.save();
     res.status(200).json({ status: "Berhasil Tambah!" });
