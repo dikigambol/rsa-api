@@ -1,9 +1,12 @@
+const db = require("../config/db");
 const Struktural = require("../models/strukturalModel");
 
 exports.getStruktural = async (req, res) => {
   try {
-    const response = await Struktural.findAll();
-    res.status(200).json(response);
+    const [results] = await db.query(
+      "SELECT `struktural`.`id_struktural`, `struktural`.`id_divisi`, `struktural`.`atasan`, `divisi`.`ket_divisi`, `user`.`nama` FROM `struktural` LEFT JOIN `user` ON `struktural`.`atasan` = `user`.`no_pegawai` LEFT JOIN `divisi` ON `struktural`.`id_divisi` = `divisi`.`id_divisi`;"
+    );
+    res.status(200).json(results);
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }

@@ -12,6 +12,6 @@ const router = express.Router();
 router.post("/divisi", requireSuperadmin, createDivisi);
 router.put("/divisi/:id", requireSuperadmin, updateDivisi);
 router.delete("/divisi/:id", requireSuperadmin, deleteDivisi);
-router.get("/divisi", requireSuperadmin, getDivisi);
+router.get("/divisi", getDivisi);
 
 module.exports = router;

@@ -36,14 +36,14 @@ exports.createUser = async (req, res) => {
 };
 
 exports.configUser = async (req, res) => {
-  let { no_pegawai, tgl_masuk, gender, no_ktp, no_hp, email, alamat_domisili,
+  let { no_pegawai, nama, tgl_masuk, gender, no_ktp, no_hp, email, alamat_domisili,
     alamat_ktp, tempat_lahir, tgl_lahir, status_nikah, tgl_keluar, pendidikan,
     posisi, divisi, jabatan } = req.body;
   if (req.method === 'GET') {
     if (!req.query.nopeg) {
       try {
         const [results] = await db.query(
-          "SELECT `user`.`no_pegawai`, `user`.`nama`, `detail_user`.`tgl_masuk`, `detail_user`.`gender`, `detail_user`.`no_ktp`, `detail_user`.`no_hp`, `detail_user`.`email`, `detail_user`.`alamat_domisili`, `detail_user`.`alamat_ktp`, `detail_user`.`tempat_lahir`, `detail_user`.`tgl_lahir`, `detail_user`.`status_nikah`, `detail_user`.`tgl_keluar`, `detail_user`.`pendidikan`, `detail_user`.`posisi`, `detail_user`.`divisi`, `detail_user`.`jabatan`, `detail_user`.`no_pegawai` FROM `user` LEFT OUTER JOIN `detail_user` ON `user`.`no_pegawai` = `detail_user`.`no_pegawai`"
+          "SELECT `user`.`no_pegawai`, `user`.`nama`, `user`.`level_user`, `user`.`default_password`, IFNULL(`divisi`.`ket_divisi`, NULL) as `divisi`, `detail_user`.`tgl_masuk`, `detail_user`.`gender`, `detail_user`.`no_ktp`, `detail_user`.`no_hp`, `detail_user`.`email`, `detail_user`.`alamat_domisili`, `detail_user`.`alamat_ktp`, `detail_user`.`tempat_lahir`, `detail_user`.`tgl_lahir`, `detail_user`.`status_nikah`, `detail_user`.`tgl_keluar`, `detail_user`.`pendidikan`, `detail_user`.`posisi`, `detail_user`.`jabatan` FROM `user` LEFT JOIN `detail_user` ON `user`.`no_pegawai` = `detail_user`.`no_pegawai` LEFT JOIN `divisi` ON `detail_user`.`divisi` = `divisi`.`id_divisi`;"
         );
         res.status(200).json(results);
       } catch (error) {
@@ -52,7 +52,7 @@ exports.configUser = async (req, res) => {
     } else {
       try {
         const [results] = await db.query(
-          "SELECT `user`.`no_pegawai`, `user`.`nama`, `detail_user`.`tgl_masuk`, `detail_user`.`gender`, `detail_user`.`no_ktp`, `detail_user`.`no_hp`, `detail_user`.`email`, `detail_user`.`alamat_domisili`, `detail_user`.`alamat_ktp`, `detail_user`.`tempat_lahir`, `detail_user`.`tgl_lahir`, `detail_user`.`status_nikah`, `detail_user`.`tgl_keluar`, `detail_user`.`pendidikan`, `detail_user`.`posisi`, `detail_user`.`divisi`, `detail_user`.`jabatan`, `detail_user`.`no_pegawai` FROM `user` LEFT OUTER JOIN `detail_user` ON `user`.`no_pegawai` = `detail_user`.`no_pegawai` WHERE `detail_user`.`no_pegawai` = " + req.query.nopeg
+          "SELECT `user`.`no_pegawai`, `user`.`nama`, `detail_user`.`tgl_masuk`, `detail_user`.`gender`, `detail_user`.`no_ktp`, `detail_user`.`no_hp`, `detail_user`.`email`, `detail_user`.`alamat_domisili`, `detail_user`.`alamat_ktp`, `detail_user`.`tempat_lahir`, `detail_user`.`tgl_lahir`, `detail_user`.`status_nikah`, `detail_user`.`tgl_keluar`, `detail_user`.`pendidikan`, `detail_user`.`posisi`, `detail_user`.`divisi`, `detail_user`.`jabatan` FROM `user` LEFT JOIN `detail_user` ON `user`.`no_pegawai` = `detail_user`.`no_pegawai` WHERE `user`.`no_pegawai` = " + req.query.nopeg
         );
         res.status(200).json(results[0] ?? { status: "invalid nopeg!" });
       } catch (error) {
@@ -72,6 +72,14 @@ exports.configUser = async (req, res) => {
       };
       if (results[0].result_arr === 0) {
         let newUser = new DetailUser(data);
+        await User.update(
+          { nama: nama },
+          {
+            where: {
+              no_pegawai: no_pegawai,
+            },
+          }
+        );
         await newUser.save();
         res.status(200).json({
           status: "Berhasil Tambah!",
@@ -80,6 +88,14 @@ exports.configUser = async (req, res) => {
         try {
           await DetailUser.update(
             data,
+            {
+              where: {
+                no_pegawai: no_pegawai,
+              },
+            }
+          );
+          await User.update(
+            { nama: nama },
             {
               where: {
                 no_pegawai: no_pegawai,
@@ -105,7 +121,7 @@ exports.signIn = async (req, res) => {
     const privateKey = await fs.readFile(privateKeyPath, { encoding: 'utf8' });
     const { no_pegawai, password } = req.body;
 
-    const response = await User.findOne({ where: { no_pegawai: no_pegawai } });
+    const response = await User.findOne({ where: { no_pegawai: parseInt(no_pegawai) } });
 
     if (!response) {
       return res.status(404).json({ error: "Invalid username or password" });

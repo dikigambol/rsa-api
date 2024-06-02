@@ -17,7 +17,7 @@ exports.requireSuperadmin = async (req, res, next) => {
         next();
       } else {
         res.status(401).json({
-          message: "Unauthorized: Invalid token",
+          message: "Unauthorized: Access Denied",
           status: 401,
         });
         return;
