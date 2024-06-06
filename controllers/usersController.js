@@ -3,9 +3,9 @@ const db = require("../config/db");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { config } = require("dotenv");
-const fs = require('fs').promises;
+const { generateKeyPairSync } = require('crypto');
+const fs = require('fs');
 const path = require('path');
-
 const DetailUser = require("../models/detailUserModel.js");
 config();
 
@@ -117,26 +117,51 @@ exports.configUser = async (req, res) => {
 
 exports.signIn = async (req, res) => {
   try {
-    const privateKeyPath = path.resolve(__dirname, '../function/keys', 'private_key.pem');
-    const privateKey = await fs.readFile(privateKeyPath, { encoding: 'utf8' });
     const { no_pegawai, password } = req.body;
-
     const response = await User.findOne({ where: { no_pegawai: parseInt(no_pegawai) } });
 
     if (!response) {
-      return res.status(404).json({ error: "Invalid username or password" });
+      return res.status(404).json({ error: "Invalid username" });
     }
 
     const login = await bcrypt.compare(password, response.password);
     if (!login) {
-      return res.status(404).json({ error: "Invalid username or password" });
+      return res.status(404).json({ error: "Invalid password" });
     }
+
+    // membuat pasangan kunci RSA tiap user 
+    const { publicKey, privateKey } = generateKeyPairSync('rsa', {
+      modulusLength: 2048, // Panjang modulus kunci dalam bit
+      publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem',
+      },
+      privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem',
+      },
+    });
+
+    const keysDir = path.join(__dirname, '../secrets/keys');
+    const publicKeyPath = path.join(keysDir, `public_key_${response.no_pegawai}.pem`);
+    const privateKeyPath = path.join(keysDir, `private_key_${response.no_pegawai}.pem`);
+
+    // Menghapus file kunci yang sudah ada jika ada
+    if (fs.existsSync(publicKeyPath)) {
+      fs.unlinkSync(publicKeyPath);
+    }
+    if (fs.existsSync(privateKeyPath)) {
+      fs.unlinkSync(privateKeyPath);
+    }
+
+    // Menyimpan kunci publik dan privat ke file
+    fs.writeFileSync(publicKeyPath, publicKey);
+    fs.writeFileSync(privateKeyPath, privateKey);
 
     const payload = { nopeg: response.no_pegawai, name: response.nama, role: response.level_user, claim: "created for HRD Asia" };
     const token = jwt.sign(payload, privateKey, { algorithm: 'RS256', expiresIn: '12h' });
 
     return res.status(200).json({ token: token });
-
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
