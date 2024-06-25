@@ -115,6 +115,7 @@ exports.configUser = async (req, res) => {
   }
 };
 
+// fungsi untuk login pengguna 
 exports.signIn = async (req, res) => {
   try {
     const { no_pegawai, password } = req.body;
