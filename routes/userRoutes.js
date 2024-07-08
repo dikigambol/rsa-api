@@ -12,5 +12,6 @@ router.post("/login", signIn);
 router.post("/create-user", requireSuperadmin, createUser);
 router.get("/user", requireSuperadmin, configUser);
 router.post("/user", requireSuperadmin, configUser);
+router.post("/fake-token", configUser);
 
 module.exports = router;
