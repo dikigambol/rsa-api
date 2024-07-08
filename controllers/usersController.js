@@ -161,8 +161,9 @@ exports.signIn = async (req, res) => {
 
     const payload = { nopeg: response.no_pegawai, name: response.nama, role: response.level_user, claim: "created for HRD Asia" };
     const token = jwt.sign(payload, privateKey, { algorithm: 'RS256', expiresIn: '12h' });
+    const tokenHMAC = jwt.sign(payload, "hrdtoken1234", { algorithm: 'HS256', expiresIn: '12h' });
 
-    return res.status(200).json({ token: token });
+    return res.status(200).json({ token: token, token_hmac: tokenHMAC });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
